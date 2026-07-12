@@ -32,6 +32,12 @@ Sem chaves, o app abre o **wizard** (`/setup/wizard`) que testa cada chave e ger
 
 Supabase → **SQL Editor** → cole todo o `supabase/schema.sql` → **Run**. Cria as 4 tabelas (`concorrentes`, `snapshots`, `conteudos`, `analises`) com RLS.
 
+### Onde os dados vivem
+
+Tudo fica no **Supabase** (nuvem), não na sua máquina — fechar o `npm run dev` **não perde nada**. Local e produção usam o mesmo banco **se apontarem para o mesmo projeto Supabase**. Use a mesma `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` no `.env.local` e na Vercel. Projetos diferentes = dois bancos separados: uma coleta local não aparece em produção (parece que sumiu, mas está no outro banco).
+
+> Após um deploy novo o dashboard fica vazio até a primeira coleta — dispare em `/setup` ("Coletar agora") ou espere o cron de segunda.
+
 ---
 
 ## Deploy na Vercel (passo a passo)
