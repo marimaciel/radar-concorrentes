@@ -1,0 +1,8 @@
+.env
+.env.local
+node_modules/
+.next/
+_v1-local/.env
+.remember/
+docs/
+_v1-local/
