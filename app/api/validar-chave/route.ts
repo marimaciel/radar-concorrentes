@@ -15,6 +15,21 @@ async function comTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   }
 }
 
+// PostgREST sinaliza "tabela não existe" de formas diferentes por versão:
+// Postgres cru ("relation ... does not exist") ou schema cache (PGRST205 /
+// "Could not find the table ... in the schema cache"). Sem isto, um schema
+// não-rodado cai no ramo genérico e mostra "URL não encontrada" por engano.
+function tabelaFaltando(body: string): boolean {
+  const b = body.toLowerCase();
+  return (
+    b.includes("relation") ||
+    b.includes("does not exist") ||
+    b.includes("schema cache") ||
+    b.includes("could not find the table") ||
+    b.includes("pgrst205")
+  );
+}
+
 async function validarSupabase(url: string, serviceKey: string): Promise<Resp> {
   const endpoint = `${url}/rest/v1/concorrentes?select=id&limit=1`;
   try {
@@ -31,13 +46,13 @@ async function validarSupabase(url: string, serviceKey: string): Promise<Resp> {
     if (res.status === 401 || res.status === 403) return { ok: false, detalhe: "Chave service_role inválida ou sem permissão" };
     if (res.status === 404) {
       const body = await res.text();
-      if (body.includes("relation") || body.includes("does not exist")) {
+      if (tabelaFaltando(body)) {
         return { ok: true, detalhe: "Chave OK, mas tabela não encontrada — rode o supabase/schema.sql no SQL Editor" };
       }
       return { ok: false, detalhe: "URL não encontrada — verifique o Project URL" };
     }
     const body = await res.text();
-    if (body.includes("relation") || body.includes("does not exist")) {
+    if (tabelaFaltando(body)) {
       return { ok: true, detalhe: "Chave OK, mas tabela não encontrada — rode o supabase/schema.sql no SQL Editor" };
     }
     return { ok: false, detalhe: `Resposta inesperada: HTTP ${res.status}` };
