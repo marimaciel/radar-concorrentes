@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { supabaseServer, type Concorrente, type Snapshot, type Video } from "@/lib/supabase";
 import { fmt, tempoRelativo } from "@/lib/ui";
+import { buscarAnaliseHooks, HOOK_STYLE_LABELS, type HookSection, type HookStyle } from "@/lib/analise";
+import { GerarAnaliseHook } from "@/components/GerarAnaliseHook";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +88,8 @@ export default async function Ideias() {
     }))
   );
 
+  const hooksPorVideo = await buscarAnaliseHooks();
+
   return (
     <main>
       <h1>💡 Ideias Outlier</h1>
@@ -93,6 +97,12 @@ export default async function Ideias() {
         Vídeos que viralizaram acima do tamanho do canal — o algoritmo empurrou pra fora da bolha.
         Filtro: pelo menos {RATIO_MINIMO}× mais views que inscritos.
       </p>
+
+      {ideias.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <GerarAnaliseHook />
+        </div>
+      )}
 
       {ideias.length === 0 ? (
         <div className="painel" style={{ marginTop: 24, padding: 24 }}>
@@ -122,6 +132,7 @@ export default async function Ideias() {
             const ratioFmt = ideia.ratio >= 10
               ? `${Math.round(ideia.ratio)}×`
               : `${ideia.ratio.toFixed(1)}×`;
+            const hook = ideia.video.id ? hooksPorVideo.get(ideia.video.id) : undefined;
             return (
               <div key={`${ideia.concorrente.id}-${i}`} className="painel" style={{ padding: 20 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -140,7 +151,7 @@ export default async function Ideias() {
                       {ideia.video.data ? ` · ${tempoRelativo(ideia.video.data)}` : ""}
                     </p>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                     <span style={{
                       background: "var(--berry)",
                       color: "#fff",
@@ -151,6 +162,20 @@ export default async function Ideias() {
                     }}>
                       {ratioFmt}
                     </span>
+                    {hook && (
+                      <span style={{
+                        background: "var(--surface-alt, #f9f4f5)",
+                        color: "var(--berry)",
+                        border: "1px solid var(--berry)",
+                        borderRadius: 999,
+                        padding: "2px 10px",
+                        fontWeight: 600,
+                        fontSize: "0.75rem",
+                        whiteSpace: "nowrap",
+                      }}>
+                        🎣 {HOOK_STYLE_LABELS[hook.hookStyle as HookStyle] ?? hook.hookStyle}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -200,6 +225,35 @@ export default async function Ideias() {
                     }}>
                       {ideia.transcript}
                     </pre>
+                  </details>
+                )}
+
+                {hook && (
+                  <details style={{ marginTop: 12 }}>
+                    <summary style={{ cursor: "pointer", color: "var(--berry)", fontWeight: 600, fontSize: "0.9rem" }}>
+                      ver quebra do hook
+                    </summary>
+                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+                      {(hook.sections as HookSection[]).map((s, si) => (
+                        <div
+                          key={si}
+                          style={{
+                            padding: "10px 12px",
+                            background: "var(--surface-alt, #f9f4f5)",
+                            borderRadius: 8,
+                            borderLeft: "3px solid var(--berry)",
+                          }}
+                        >
+                          <p style={{ fontSize: "0.8rem", marginBottom: 4 }}>
+                            <strong>{s.label}</strong>{" "}
+                            <span className="muted">— {s.note}</span>
+                          </p>
+                          <p style={{ fontSize: "0.85rem", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                            {s.text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </details>
                 )}
               </div>

@@ -238,3 +238,199 @@ export async function buscarUltimaAnalise(tipo: string): Promise<Analise | null>
 
   return (data as Analise | null) ?? null;
 }
+
+// ================================================================== Análise de Hooks (/ideias)
+export type HookStyle =
+  | "problem-promise"
+  | "contrarian-claim"
+  | "list-tease"
+  | "demo-first"
+  | "story-frame"
+  | "data-shock"
+  | "identity-call"
+  | "other";
+
+export type HookSection = { label: string; text: string; note: string };
+
+export type HookVideo = { chave: string; hookStyle: HookStyle; sections: HookSection[] };
+
+export const HOOK_STYLE_LABELS: Record<HookStyle, string> = {
+  "problem-promise": "Problema→Promessa",
+  "contrarian-claim": "Contra-corrente",
+  "list-tease": "Lista/Teaser",
+  "demo-first": "Demonstração",
+  "story-frame": "História",
+  "data-shock": "Dado de choque",
+  "identity-call": "Chamado de identidade",
+  other: "Outro",
+};
+
+const PROMPT_HOOKS = `Você é uma editora de vídeo especializada em ganchos (hooks) de roteiros de YouTube.
+
+Você vai receber a transcrição de um ou mais vídeos, cada um identificado por um "chave" (o videoId) e um título.
+
+Para cada vídeo, faça duas coisas:
+
+1. Classifique o estilo do gancho em "hookStyle", usando EXATAMENTE um destes valores:
+   - "problem-promise": nomeia uma dor e promete resolver
+   - "contrarian-claim": afirmação contra o senso comum
+   - "list-tease": promete uma lista/checklist do que vem a seguir
+   - "demo-first": começa mostrando o resultado/demonstração antes de explicar
+   - "story-frame": abre com uma história/anedota pessoal
+   - "data-shock": abre com um dado ou número chocante
+   - "identity-call": chama um grupo específico ("se você é...")
+   - "other": não se encaixa nos anteriores
+
+2. Quebre a transcrição inteira em seções sequenciais, em "sections":
+   - A primeira seção é sempre "Hook" (os primeiros segundos — a virada que prende a atenção)
+   - As seções seguintes são "Beat 1", "Beat 2", "Beat 3"... (cada bloco de desenvolvimento do conteúdo)
+   - A última seção é sempre "CTA" (o fechamento / chamada para ação)
+
+   Cada seção tem três campos:
+   - "label": "Hook", "Beat N" ou "CTA"
+   - "text": o trecho VERBATIM da transcrição correspondente — copie exatamente as palavras, NÃO parafraseie e NÃO resuma
+   - "note": uma frase curta (3 a 6 palavras) descrevendo a função daquele trecho, em português (ex: "nomeia a dor", "passo 1", "fechamento FOMO")
+
+Juntas, as seções de um vídeo devem cobrir a transcrição inteira, do início ao fim, sem pular trechos.
+
+Retorne APENAS JSON válido — sem texto antes ou depois, sem markdown, sem crases — no formato:
+
+[
+  {
+    "chave": "<videoId>",
+    "hookStyle": "<um dos estilos acima>",
+    "sections": [
+      { "label": "Hook", "text": "...", "note": "..." },
+      { "label": "Beat 1", "text": "...", "note": "..." },
+      { "label": "CTA", "text": "...", "note": "..." }
+    ]
+  }
+]
+
+Retorne um objeto por vídeo recebido, na mesma ordem em que foram apresentados.`;
+
+function parseJsonArrayHooks(texto: string): unknown {
+  let limpo = texto.trim();
+  const cercado = limpo.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  if (cercado) limpo = cercado[1].trim();
+
+  try {
+    return JSON.parse(limpo);
+  } catch {
+    const inicio = limpo.indexOf("[");
+    const fim = limpo.lastIndexOf("]");
+    if (inicio !== -1 && fim !== -1 && fim > inicio) {
+      return JSON.parse(limpo.slice(inicio, fim + 1));
+    }
+    throw new Error("Não foi possível interpretar o JSON retornado pela IA.");
+  }
+}
+
+export async function gerarHooks(): Promise<HookVideo[]> {
+  const sb = supabaseServer();
+
+  const { data: conteudos, error: erroConteudos } = await sb
+    .from("conteudos")
+    .select("chave, titulo_ou_legenda, transcript")
+    .eq("fonte", "youtube")
+    .not("transcript", "is", null)
+    .order("buscado_em", { ascending: false });
+
+  if (erroConteudos) {
+    throw new Error(`Erro ao buscar transcrições: ${erroConteudos.message}`);
+  }
+
+  const transcritos = ((conteudos ?? []) as { chave: string; titulo_ou_legenda: string | null; transcript: string | null }[]).filter(
+    (c): c is { chave: string; titulo_ou_legenda: string | null; transcript: string } => !!c.transcript && !!c.chave
+  );
+
+  if (!transcritos.length) {
+    throw new Error(
+      "Nenhuma transcrição de YouTube encontrada na tabela 'conteudos'. Rode uma coleta com vídeos antes de gerar a análise de hooks."
+    );
+  }
+
+  const insumos = transcritos
+    .map(
+      (c) =>
+        `### Vídeo: ${c.chave}\n**Título:** ${c.titulo_ou_legenda ?? "(sem título)"}\n\n${truncar(c.transcript, 12000)}`
+    )
+    .join("\n\n---\n\n");
+
+  const client = new Anthropic();
+
+  const stream = client.messages.stream({
+    model: "claude-opus-4-8",
+    max_tokens: 16000,
+    thinking: { type: "adaptive" },
+    system: PROMPT_HOOKS,
+    messages: [{ role: "user", content: insumos }],
+  });
+
+  const msg = await stream.finalMessage();
+
+  if (msg.stop_reason === "refusal") {
+    throw new Error("A IA recusou gerar a análise de hooks. Tente novamente ou revise as transcrições.");
+  }
+
+  const texto = msg.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+
+  if (!texto) {
+    throw new Error("A IA retornou uma resposta vazia. Tente novamente.");
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = parseJsonArrayHooks(texto);
+  } catch {
+    throw new Error("A IA retornou um JSON inválido para a análise de hooks. Tente novamente.");
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error("A IA retornou um formato inesperado (esperado um array JSON). Tente novamente.");
+  }
+
+  const resultado = JSON.stringify(parsed);
+
+  const { error: erroInsert } = await sb.from("analises").insert({
+    tipo: "hook",
+    resultado,
+    snapshot_ids: null,
+    custo_tokens_in: msg.usage?.input_tokens ?? null,
+    custo_tokens_out: msg.usage?.output_tokens ?? null,
+  });
+
+  if (erroInsert) {
+    const detalhe = erroInsert.message || erroInsert.code || JSON.stringify(erroInsert);
+    throw new Error(
+      `Erro ao salvar análise de hooks: ${detalhe} — a tabela 'analises' existe? Rode o supabase/schema.sql no banco.`
+    );
+  }
+
+  return parsed as HookVideo[];
+}
+
+export async function buscarAnaliseHooks(): Promise<Map<string, { hookStyle: HookStyle; sections: HookSection[] }>> {
+  const mapa = new Map<string, { hookStyle: HookStyle; sections: HookSection[] }>();
+  try {
+    const analise = await buscarUltimaAnalise("hook");
+    if (!analise?.resultado) return mapa;
+    const parsed = JSON.parse(analise.resultado);
+    if (!Array.isArray(parsed)) return mapa;
+    for (const item of parsed as unknown[]) {
+      const v = item as Partial<HookVideo>;
+      if (v && typeof v.chave === "string" && Array.isArray(v.sections)) {
+        mapa.set(v.chave, {
+          hookStyle: (v.hookStyle as HookStyle) ?? "other",
+          sections: v.sections as HookSection[],
+        });
+      }
+    }
+  } catch {
+    // resultado ausente ou JSON inválido — retorna mapa vazio
+  }
+  return mapa;
+}
