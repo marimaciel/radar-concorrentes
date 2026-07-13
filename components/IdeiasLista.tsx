@@ -217,8 +217,8 @@ export function IdeiasLista({
 
             return (
               <div key={cand.chave} className="painel" style={{ padding: 20 }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12, width: "100%" }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flex: "1 1 0%", minWidth: 0 }}>
                     {cand.temTranscript && (
                       <input
                         type="checkbox"
@@ -277,7 +277,7 @@ export function IdeiasLista({
                       </p>
                     </div>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                  <div style={{ textAlign: "right", flex: "0 0 auto", maxWidth: 170, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                     {cand.outlier ? (
                       <span style={{
                         background: "var(--berry)",
