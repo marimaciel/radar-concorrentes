@@ -332,7 +332,7 @@ export async function gerarHooks(): Promise<HookVideo[]> {
   const { data: conteudos, error: erroConteudos } = await sb
     .from("conteudos")
     .select("chave, titulo_ou_legenda, transcript")
-    .eq("fonte", "youtube")
+    .in("fonte", ["youtube", "instagram"])
     .not("transcript", "is", null)
     .order("buscado_em", { ascending: false });
 
@@ -346,14 +346,14 @@ export async function gerarHooks(): Promise<HookVideo[]> {
 
   if (!transcritos.length) {
     throw new Error(
-      "Nenhuma transcrição de YouTube encontrada na tabela 'conteudos'. Rode uma coleta com vídeos antes de gerar a análise de hooks."
+      "Nenhuma transcrição (YouTube ou Instagram) encontrada na tabela 'conteudos'. Rode uma coleta com vídeos/reels antes de gerar a análise de hooks."
     );
   }
 
   const insumos = transcritos
     .map(
       (c) =>
-        `### Vídeo: ${c.chave}\n**Título:** ${c.titulo_ou_legenda ?? "(sem título)"}\n\n${truncar(c.transcript, 12000)}`
+        `### Conteúdo: ${c.chave}\n**Título/legenda:** ${c.titulo_ou_legenda ?? "(sem título)"}\n\n${truncar(c.transcript, 12000)}`
     )
     .join("\n\n---\n\n");
 
