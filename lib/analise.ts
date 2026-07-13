@@ -326,7 +326,7 @@ function parseJsonArrayHooks(texto: string): unknown {
   }
 }
 
-export async function gerarHooks(): Promise<HookVideo[]> {
+export async function gerarHooks(chaves?: string[]): Promise<HookVideo[]> {
   const sb = supabaseServer();
 
   const { data: conteudos, error: erroConteudos } = await sb
@@ -350,7 +350,23 @@ export async function gerarHooks(): Promise<HookVideo[]> {
     );
   }
 
-  const insumos = transcritos
+  // Análise já existente — usada tanto pra saber o que pular quanto pra mesclar no final
+  const existentes = await buscarAnaliseHooks();
+
+  // Alvo: só o que foi selecionado (se veio filtro), senão tudo que tem transcrição
+  const candidatos = chaves && chaves.length
+    ? transcritos.filter((c) => chaves.includes(c.chave))
+    : transcritos;
+
+  // Pula o que já foi analisado antes — é aqui que a gente economiza tokens
+  const aAnalisar = candidatos.filter((c) => !existentes.has(c.chave));
+
+  if (!aAnalisar.length) {
+    // Nada novo pra analisar (tudo selecionado já tinha análise) — não chama a IA, não grava linha nova
+    return Array.from(existentes, ([chave, v]) => ({ chave, ...v }));
+  }
+
+  const insumos = aAnalisar
     .map(
       (c) =>
         `### Conteúdo: ${c.chave}\n**Título/legenda:** ${c.titulo_ou_legenda ?? "(sem título)"}\n\n${truncar(c.transcript, 12000)}`
@@ -393,7 +409,19 @@ export async function gerarHooks(): Promise<HookVideo[]> {
     throw new Error("A IA retornou um formato inesperado (esperado um array JSON). Tente novamente.");
   }
 
-  const resultado = JSON.stringify(parsed);
+  // Mescla os novos resultados por cima dos existentes — nunca perde análise anterior
+  const mesclado = new Map(existentes);
+  for (const item of parsed as Partial<HookVideo>[]) {
+    if (item && typeof item.chave === "string" && Array.isArray(item.sections)) {
+      mesclado.set(item.chave, {
+        hookStyle: (item.hookStyle as HookStyle) ?? "other",
+        sections: item.sections as HookSection[],
+      });
+    }
+  }
+
+  const resultadoFinal: HookVideo[] = Array.from(mesclado, ([chave, v]) => ({ chave, ...v }));
+  const resultado = JSON.stringify(resultadoFinal);
 
   const { error: erroInsert } = await sb.from("analises").insert({
     tipo: "hook",
@@ -410,7 +438,7 @@ export async function gerarHooks(): Promise<HookVideo[]> {
     );
   }
 
-  return parsed as HookVideo[];
+  return resultadoFinal;
 }
 
 export async function buscarAnaliseHooks(): Promise<Map<string, { hookStyle: HookStyle; sections: HookSection[] }>> {

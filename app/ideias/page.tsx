@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { supabaseServer, type Concorrente, type Snapshot } from "@/lib/supabase";
 import { fmt, tempoRelativo } from "@/lib/ui";
-import { buscarAnaliseHooks, HOOK_STYLE_LABELS, type HookSection, type HookStyle } from "@/lib/analise";
-import { GerarAnaliseHook } from "@/components/GerarAnaliseHook";
+import { buscarAnaliseHooks } from "@/lib/analise";
+import { IdeiasLista, type CandidatoIdeia } from "@/components/IdeiasLista";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +53,22 @@ function formatarDestaque(c: Candidato): string {
   }
   const pct = c.ratio * 100;
   return pct >= 10 ? `${Math.round(pct)}%` : `${pct.toFixed(1)}%`;
+}
+
+function formatarMetricaLinha(c: Candidato): string {
+  const partes: string[] = [];
+  if (c.fonte === "youtube") {
+    partes.push(`👁 ${fmt.format(c.metricaPrincipal)} views`);
+    partes.push(`👥 ${fmt.format(c.audiencia)} inscritos`);
+  } else {
+    partes.push(`❤️ ${fmt.format(c.metricaPrincipal)} engajamento`);
+    partes.push(`👥 ${fmt.format(c.audiencia)} seguidores`);
+    if (c.viewsExtra != null && c.viewsExtra > 0) {
+      partes.push(`👁 ${fmt.format(c.viewsExtra)} views`);
+    }
+  }
+  partes.push(`📅 coletado ${tempoRelativo(c.coletado_em)}`);
+  return partes.join(" · ");
 }
 
 export default async function Ideias() {
@@ -149,6 +165,30 @@ export default async function Ideias() {
 
   const hooksPorChave = await buscarAnaliseHooks();
 
+  const candidatosProp: CandidatoIdeia[] = candidatos.map((cand, i) => {
+    const chave = cand.chave ?? `sem-chave-${cand.fonte}-${i}`;
+    const hook = cand.chave ? hooksPorChave.get(cand.chave) ?? null : null;
+    return {
+      chave,
+      fonte: cand.fonte,
+      titulo: cand.titulo,
+      url: cand.url,
+      concorrenteId: cand.concorrente.id,
+      concorrenteNome: cand.concorrente.nome,
+      dataRel: cand.data ? tempoRelativo(cand.data) : null,
+      destaque: cand.destaque,
+      outlier: cand.outlier,
+      ratioLabel: formatarDestaque(cand),
+      metricaLinha: formatarMetricaLinha(cand),
+      transcript: cand.transcript,
+      temTranscript: !!cand.transcript && !!cand.chave,
+      jaAnalisado: !!hook,
+      hook,
+    };
+  });
+
+  const concorrentesProp = concorrentes.map((conc) => ({ id: conc.id, nome: conc.nome }));
+
   return (
     <main>
       <h1>💡 Ideias Outlier</h1>
@@ -159,13 +199,7 @@ export default async function Ideias() {
         Instagram. Abaixo da barra ainda aparece — é o melhor disponível, só não bateu o recorde.
       </p>
 
-      {candidatos.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <GerarAnaliseHook />
-        </div>
-      )}
-
-      {candidatos.length === 0 ? (
+      {candidatosProp.length === 0 ? (
         <div className="painel" style={{ marginTop: 24, padding: 24 }}>
           <p style={{ fontWeight: 600, marginBottom: 8 }}>Nenhum conteúdo disponível ainda.</p>
           <p className="muted" style={{ marginBottom: 8 }}>
@@ -188,204 +222,7 @@ export default async function Ideias() {
           </p>
         </div>
       ) : (
-        <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-          {candidatos.map((cand, i) => {
-            const destaqueFmt = formatarDestaque(cand);
-            const hook = cand.chave ? hooksPorChave.get(cand.chave) : undefined;
-            const fonteLabel = cand.fonte === "youtube" ? "YouTube" : "Instagram";
-
-            return (
-              <div key={`${cand.concorrente.id}-${cand.fonte}-${i}`} className="painel" style={{ padding: 20 }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{
-                      display: "inline-block",
-                      background: "var(--surface-alt, #f9f4f5)",
-                      color: "var(--berry)",
-                      borderRadius: 999,
-                      padding: "1px 8px",
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.03em",
-                      marginBottom: 6,
-                    }}>
-                      {fonteLabel}
-                    </span>
-                    <p style={{ fontWeight: 700, fontSize: "1rem", marginBottom: 4, lineHeight: 1.4 }}>
-                      {cand.url ? (
-                        <a href={cand.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--berry)" }}>
-                          {cand.titulo}
-                        </a>
-                      ) : (
-                        cand.titulo
-                      )}
-                    </p>
-                    <p className="muted" style={{ fontSize: "0.85rem" }}>
-                      {cand.concorrente.nome}
-                      {cand.data ? ` · ${tempoRelativo(cand.data)}` : ""}
-                    </p>
-                  </div>
-                  <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                    {cand.outlier ? (
-                      <span style={{
-                        background: "var(--berry)",
-                        color: "#fff",
-                        borderRadius: 8,
-                        padding: "4px 10px",
-                        fontWeight: 700,
-                        fontSize: "1.1rem",
-                      }}>
-                        ★ {destaqueFmt}
-                      </span>
-                    ) : (
-                      <span style={{
-                        background: "transparent",
-                        color: "var(--muted-foreground, #888)",
-                        border: "1px solid var(--muted-foreground, #ccc)",
-                        borderRadius: 8,
-                        padding: "4px 10px",
-                        fontWeight: 600,
-                        fontSize: "0.85rem",
-                      }}>
-                        ○ melhor da janela
-                      </span>
-                    )}
-                    {hook && (
-                      <span style={{
-                        background: "var(--surface-alt, #f9f4f5)",
-                        color: "var(--berry)",
-                        border: "1px solid var(--berry)",
-                        borderRadius: 999,
-                        padding: "2px 10px",
-                        fontWeight: 600,
-                        fontSize: "0.75rem",
-                        whiteSpace: "nowrap",
-                      }}>
-                        🎣 {HOOK_STYLE_LABELS[hook.hookStyle as HookStyle] ?? hook.hookStyle}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: 20, marginTop: 12, flexWrap: "wrap" }}>
-                  {cand.fonte === "youtube" ? (
-                    <>
-                      <span className="muted" style={{ fontSize: "0.85rem" }}>
-                        👁 <strong>{fmt.format(cand.metricaPrincipal)}</strong> views
-                      </span>
-                      <span className="muted" style={{ fontSize: "0.85rem" }}>
-                        👥 <strong>{fmt.format(cand.audiencia)}</strong> inscritos
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="muted" style={{ fontSize: "0.85rem" }}>
-                        ❤️ <strong>{fmt.format(cand.metricaPrincipal)}</strong> engajamento
-                      </span>
-                      <span className="muted" style={{ fontSize: "0.85rem" }}>
-                        👥 <strong>{fmt.format(cand.audiencia)}</strong> seguidores
-                      </span>
-                      {cand.viewsExtra != null && cand.viewsExtra > 0 && (
-                        <span className="muted" style={{ fontSize: "0.85rem" }}>
-                          👁 <strong>{fmt.format(cand.viewsExtra)}</strong> views
-                        </span>
-                      )}
-                    </>
-                  )}
-                  <span className="muted" style={{ fontSize: "0.85rem" }}>
-                    📅 coletado {tempoRelativo(cand.coletado_em)}
-                  </span>
-                </div>
-
-                <div style={{
-                  marginTop: 12,
-                  padding: "10px 14px",
-                  background: "var(--surface-alt, #f9f4f5)",
-                  borderRadius: 8,
-                  borderLeft: "3px solid var(--berry)",
-                  fontSize: "0.9rem",
-                  lineHeight: 1.6,
-                }}>
-                  <strong>{cand.outlier ? "Por que é outlier:" : "Por que aparece:"}</strong>{" "}
-                  {cand.outlier ? (
-                    cand.fonte === "youtube" ? (
-                      <>
-                        Este vídeo tem <strong>{destaqueFmt}</strong> mais views do que o canal tem inscritos — o
-                        algoritmo empurrou pra fora da bolha e entregou pra quem ainda não seguia o criador. Isso é
-                        sinal de tema validado pelo público, não pelo tamanho do canal. Vale estudar o gancho, o
-                        formato e o título antes de criar algo parecido.
-                      </>
-                    ) : (
-                      <>
-                        Este post teve engajamento de <strong>{destaqueFmt}</strong> dos seguidores — bem acima da
-                        norma de ~{Math.round(BARRA_IG * 100)}% que já configura um outlier no Instagram. É sinal de
-                        que o tema ou o formato ressoou além do alcance normal do perfil.
-                      </>
-                    )
-                  ) : (
-                    <>
-                      Ainda não cruzou a barra de outlier
-                      {cand.fonte === "youtube" ? ` (${BARRA_YT}× inscritos)` : ` (~${Math.round(BARRA_IG * 100)}% de engajamento)`},
-                      mas é o melhor desempenho disponível nesta janela de coleta para este concorrente — vale
-                      acompanhar se a próxima coleta confirma a tendência.
-                    </>
-                  )}
-                </div>
-
-                {cand.transcript && (
-                  <details style={{ marginTop: 12 }}>
-                    <summary style={{ cursor: "pointer", color: "var(--berry)", fontWeight: 600, fontSize: "0.9rem" }}>
-                      ver transcrição
-                    </summary>
-                    <pre style={{
-                      marginTop: 8,
-                      padding: 12,
-                      background: "var(--surface-alt, #f9f4f5)",
-                      borderRadius: 8,
-                      fontSize: "0.8rem",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      maxHeight: 300,
-                      overflowY: "auto",
-                    }}>
-                      {cand.transcript}
-                    </pre>
-                  </details>
-                )}
-
-                {hook && (
-                  <details style={{ marginTop: 12 }}>
-                    <summary style={{ cursor: "pointer", color: "var(--berry)", fontWeight: 600, fontSize: "0.9rem" }}>
-                      ver quebra do hook
-                    </summary>
-                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-                      {(hook.sections as HookSection[]).map((s, si) => (
-                        <div
-                          key={si}
-                          style={{
-                            padding: "10px 12px",
-                            background: "var(--surface-alt, #f9f4f5)",
-                            borderRadius: 8,
-                            borderLeft: "3px solid var(--berry)",
-                          }}
-                        >
-                          <p style={{ fontSize: "0.8rem", marginBottom: 4 }}>
-                            <strong>{s.label}</strong>{" "}
-                            <span className="muted">— {s.note}</span>
-                          </p>
-                          <p style={{ fontSize: "0.85rem", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                            {s.text}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <IdeiasLista candidatos={candidatosProp} concorrentes={concorrentesProp} />
       )}
 
       <p className="muted" style={{ marginTop: 16, fontSize: "0.85rem" }}>
