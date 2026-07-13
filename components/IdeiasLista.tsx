@@ -218,16 +218,17 @@ export function IdeiasLista({
             return (
               <div key={cand.chave} className="painel" style={{ padding: 20 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, width: "100%" }}>
-                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flex: "1 1 0%", minWidth: 0 }}>
-                    {cand.temTranscript && (
-                      <input
-                        type="checkbox"
-                        checked={selecionados.has(cand.chave)}
-                        onChange={() => alternarSelecao(cand.chave)}
-                        style={{ marginTop: 6, flexShrink: 0 }}
-                      />
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                  {cand.temTranscript && (
+                    <input
+                      type="checkbox"
+                      checked={selecionados.has(cand.chave)}
+                      onChange={() => alternarSelecao(cand.chave)}
+                      // width:auto anula o `input { width:100% }` global (senão o checkbox
+                      // estica pra largura toda e quebra o card).
+                      style={{ marginTop: 6, flexShrink: 0, width: "auto" }}
+                    />
+                  )}
+                  <div style={{ flex: "1 1 0%", minWidth: 0 }}>
                       <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
                         <span style={{
                           display: "inline-block",
@@ -275,7 +276,6 @@ export function IdeiasLista({
                         {cand.concorrenteNome}
                         {cand.dataRel ? ` · ${cand.dataRel}` : ""}
                       </p>
-                    </div>
                   </div>
                   <div style={{ textAlign: "right", flex: "0 0 auto", maxWidth: 170, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                     {cand.outlier ? (
