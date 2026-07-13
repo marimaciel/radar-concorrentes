@@ -341,6 +341,13 @@ export function IdeiasLista({
                     }}>
                       {cand.transcript}
                     </pre>
+                    <a
+                      href={`data:text/plain;charset=utf-8,${encodeURIComponent(cand.transcript)}`}
+                      download={`transcricao-${cand.chave}.txt`}
+                      style={{ display: "inline-block", marginTop: 6, fontSize: "0.75rem", color: "var(--berry)", fontWeight: 600 }}
+                    >
+                      baixar .txt
+                    </a>
                   </details>
                 )}
 

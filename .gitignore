@@ -6,3 +6,5 @@ _v1-local/.env
 .remember/
 docs/
 _v1-local/
+
+tsconfig.tsbuildinfo

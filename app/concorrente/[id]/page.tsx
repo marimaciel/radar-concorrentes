@@ -198,7 +198,14 @@ export default async function ConcorrenteDetalhe({ params, searchParams }: {
                       {temTranscript && conteudo?.transcript && (
                         <details style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
                           <summary style={{ cursor: "pointer", fontWeight: 700, color: "var(--berry)", userSelect: "none" }}>ver transcrição</summary>
-                          <p style={{ marginTop: 6, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{conteudo.transcript}</p>
+                          <p style={{ marginTop: 6, lineHeight: 1.5, whiteSpace: "pre-wrap", maxHeight: 220, overflowY: "auto", paddingRight: 4 }}>{conteudo.transcript}</p>
+                          <a
+                            href={`data:text/plain;charset=utf-8,${encodeURIComponent(conteudo.transcript)}`}
+                            download={`transcricao-${conteudo.chave}.txt`}
+                            style={{ display: "inline-block", marginTop: 6, fontSize: "0.72rem", color: "var(--berry)", fontWeight: 700 }}
+                          >
+                            baixar .txt
+                          </a>
                         </details>
                       )}
                       {podeTranscricao && p.code && (
@@ -263,7 +270,14 @@ export default async function ConcorrenteDetalhe({ params, searchParams }: {
                       {temTranscript && conteudo?.transcript && (
                         <details style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
                           <summary style={{ cursor: "pointer", fontWeight: 700, color: "var(--berry)", userSelect: "none" }}>ver transcrição</summary>
-                          <p style={{ marginTop: 6, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{conteudo.transcript}</p>
+                          <p style={{ marginTop: 6, lineHeight: 1.5, whiteSpace: "pre-wrap", maxHeight: 220, overflowY: "auto", paddingRight: 4 }}>{conteudo.transcript}</p>
+                          <a
+                            href={`data:text/plain;charset=utf-8,${encodeURIComponent(conteudo.transcript)}`}
+                            download={`transcricao-${conteudo.chave}.txt`}
+                            style={{ display: "inline-block", marginTop: 6, fontSize: "0.72rem", color: "var(--berry)", fontWeight: 700 }}
+                          >
+                            baixar .txt
+                          </a>
                         </details>
                       )}
                       {podeTranscricao && v.id && (
