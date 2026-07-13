@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       const { dados, erros } = await coletarConcorrente(c);
       const { error: e2 } = await sb.from("snapshots").insert({
         concorrente_id: c.id,
-        seguidores: dados.perfil?.seguidores ?? null,
+        seguidores: dados.perfil?.seguidores ?? dados.canal?.inscritos ?? null,
         eng_medio: engajamentoMedio(dados.posts),
         dados,
         erros: Object.keys(erros).length ? erros : null,

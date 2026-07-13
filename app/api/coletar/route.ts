@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
 
   const { error: e2 } = await sb.from("snapshots").insert({
     concorrente_id: c.id,
-    seguidores: dados.perfil?.seguidores ?? null,
+    // IG é a métrica primária; canal YouTube-only usa inscritos para ter
+    // tendência e evolução temporal (senão seguidores fica null e some do gráfico).
+    seguidores: dados.perfil?.seguidores ?? dados.canal?.inscritos ?? null,
     eng_medio: engajamentoMedio(dados.posts),
     dados,
     erros: Object.keys(erros).length ? erros : null,

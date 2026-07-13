@@ -179,9 +179,29 @@ async function coletarYoutubeRss(canalUrl: string) {
 }
 
 // ---------------------------------------------------------------- Ads (Meta Ad Library)
+// Nome sem acento/caixa/pontuação, para casar pageName com ads_query.
+function normalizarNome(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 async function coletarAds(query: string) {
   const r = await anyapi("facebook.company_ads?max_items=10", { companyName: query, status: "ACTIVE" });
-  const ads: any[] = r.data?.ads ?? [];
+  const todos: any[] = r.data?.ads ?? [];
+  // company_ads é busca por NOME (fuzzy): a Meta pode devolver anúncios de uma
+  // página com nome só parecido. Mantém apenas os cujo pageName casa com o
+  // ads_query — sem match, melhor não mostrar nada do que mostrar conta errada.
+  const alvo = normalizarNome(query);
+  const ads: any[] = alvo
+    ? todos.filter((a) => {
+        const pn = normalizarNome(String(a.pageName ?? a.page_name ?? ""));
+        return pn && (pn === alvo || pn.includes(alvo) || alvo.includes(pn));
+      })
+    : todos;
   return {
     ads: ads.slice(0, 10).map((a) => ({
       pagina: a.pageName ?? a.page_name ?? query,
