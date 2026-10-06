@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ColetarAgora } from "./ColetarAgora";
+import { SairButton } from "./SairButton";
 
 const TABS: [string, string][] = [
   ["/", "Dashboard"],
@@ -22,6 +23,7 @@ export function TopBar() {
       <div className="topbar-acoes">
         <Link href="/setup" className="btn-ghost">⚙️ Configurações</Link>
         <ColetarAgora />
+        <SairButton />
       </div>
     </header>
   );

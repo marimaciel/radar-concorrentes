@@ -3,10 +3,7 @@
 App Next.js + Supabase. Os dados ficam no banco: fechar a sessão não perde nada,
 e cada coleta vira um snapshot — com o tempo você enxerga a evolução dos concorrentes.
 
-> 💡 **Caminho mais fácil:** rode `npm install && npm run dev` e abra
-> `http://localhost:3000` — sem chaves configuradas o app abre o **wizard**
-> (`/setup/wizard`), que te guia por cada chave com botão de teste e gera o
-> `.env.local` pronto. Os passos abaixo são a versão manual do mesmo caminho.
+> Configure primeiro as variáveis de autenticação abaixo e crie seu usuário no Supabase. O app exige login antes de abrir as páginas do Radar.
 
 ## 1. Criar o banco (Supabase) — 5 min
 
@@ -14,7 +11,10 @@ e cada coleta vira um snapshot — com o tempo você enxerga a evolução dos co
 2. Menu lateral → **SQL Editor** → cole o conteúdo de `supabase/schema.sql` → **Run**
 3. Menu lateral → **Project Settings → API** e copie:
    - **Project URL** → vai virar `NEXT_PUBLIC_SUPABASE_URL`
-   - **service_role key** (secret) → vai virar `SUPABASE_SERVICE_ROLE_KEY`
+   - **Publishable key** → vai virar `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - **Secret key** → vai virar `SUPABASE_SERVICE_ROLE_KEY` (somente servidor)
+4. Menu lateral → **Authentication → Users → Add user**: crie seu usuário do Radar com e-mail e senha.
+5. Em **Authentication → URL Configuration**, use `http://localhost:3000` como Site URL e adicione `http://localhost:3000/**` em Redirect URLs.
 
 ## 2. Chave da API de coleta
 
@@ -28,22 +28,23 @@ Uma chave só cobre tudo (Instagram, YouTube, site e anúncios):
 ## 3. Rodar no seu computador
 
 ```
-copie .env.local.example para .env.local e preencha as 3 chaves
+copie .env.local.example para .env.local e preencha as variáveis obrigatórias
 npm install
 npm run dev
 ```
 
-Abra `http://localhost:3000/setup` → cadastre os concorrentes → **Coletar dados agora** → veja o Dashboard.
+Preencha `RADAR_ALLOWED_EMAIL` com o mesmo e-mail do usuário autorizado criado no Supabase. Abra `http://localhost:3000/login` e entre com esse e-mail e senha.
+
+Depois do login, abra `http://localhost:3000/setup` para cadastrar concorrentes e disparar coletas.
 
 ## 4. Publicar na internet (Vercel) — 10 min
 
 1. Suba o projeto para um repositório no GitHub (o `.gitignore` já protege suas chaves)
 2. Em [vercel.com](https://vercel.com) → **Add New Project** → importe o repositório
-3. Em **Settings → Environment Variables**, adicione as chaves do `.env.local`
+3. Em **Settings → Environment Variables**, adicione as variáveis do `.env.local` uma por vez, incluindo `RADAR_ALLOWED_EMAIL`
 4. **Deploy** → pronto: seu radar tem uma URL própria, acessível de qualquer lugar
 
-> ⚠️ A URL é pública. Se quiser proteger, ative o Vercel Authentication
-> (Settings → Deployment Protection) ou peça na aula avançada de autenticação.
+> Mantenha o cadastro público de novos usuários desativado no Supabase e configure `RADAR_ALLOWED_EMAIL` para autorizar somente sua conta.
 
 ## 5. Coleta automática semanal (Vercel Cron) — opcional
 

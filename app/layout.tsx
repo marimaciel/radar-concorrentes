@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { TopBar } from "@/components/TopBar";
-import { Sidebar } from "@/components/Sidebar";
+import { AppChrome } from "@/components/AppChrome";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700", "900"] });
@@ -15,9 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
-        <TopBar />
-        <Sidebar />
-        <div className="shell">{children}</div>
+        <AppChrome>{children}</AppChrome>
       </body>
     </html>
   );

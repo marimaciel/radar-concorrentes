@@ -1,5 +1,6 @@
 .env
 .env.local
+env.download
 node_modules/
 .next/
 _v1-local/.env

@@ -485,7 +485,7 @@ export default function Wizard() {
       const j = await r.json() as { ok: boolean; detalhe: string };
       set({ status: j.ok ? "ok" : "erro", detalhe: j.detalhe });
     } catch (e) {
-      set({ status: "erro", detalhe: `Erro de rede: ${e instanceof Error ? e.message : String(e)}` });
+      set({ status: "erro", detalhe: `Não foi possível acessar /api/validar-chave: ${e instanceof Error ? e.message : String(e)}` });
     }
   }
 

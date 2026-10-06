@@ -83,6 +83,44 @@ a:hover { text-decoration: none; }
   .topbar-tabs { display: none; }
 }
 
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.login-panel {
+  width: min(100%, 420px);
+  padding: 36px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.login-eyebrow {
+  color: var(--berry);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 12px;
+}
+.login-panel h1 { margin-bottom: 4px; }
+.login-description { margin-bottom: 24px; }
+.login-form { display: grid; gap: 8px; }
+.login-form input { margin-bottom: 8px; }
+.login-submit { justify-content: center; margin-top: 8px; }
+.login-message {
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.login-message.erro { color: #a34f45; border-color: var(--coral); }
+@media (max-width: 480px) { .login-panel { padding: 24px; } }
+
 /* ---------- Painéis e seções ---------- */
 .painel, .card {
   background: var(--panel); border: 1px solid var(--border);

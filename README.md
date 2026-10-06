@@ -16,14 +16,16 @@ npm install
 npm run dev                        # http://localhost:3000
 ```
 
-Sem chaves, o app abre o **wizard** (`/setup/wizard`) que testa cada chave e gera o `.env.local` pra você. Depois de editar o `.env.local`, **reinicie o `npm run dev`** (o Next lê env só no boot).
+Antes do primeiro acesso, configure o login no Supabase, preencha as variáveis abaixo e crie o usuário autorizado. Depois de editar o `.env.local`, **reinicie o `npm run dev`** (o Next lê env só no boot).
 
 ### Chaves
 
 | Variável | Onde pegar | Obrigatória |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | supabase.com → Project Settings → API → **Project URL** | sim |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | mesma tela → **Publishable key** | sim |
 | `SUPABASE_SERVICE_ROLE_KEY` | mesma tela → **service_role** (secret) | sim |
+| `RADAR_ALLOWED_EMAIL` | e-mail exato do usuário autorizado em Authentication → Users | sim |
 | `ANYAPI_KEY` | getanyapi.com → Dashboard → API Keys → **Create key** | sim |
 | `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys | não (só `/posicionamento`) |
 | `CRON_SECRET` | um segredo qualquer (ex.: `openssl rand -hex 16`) | só no deploy (cron) |
@@ -31,6 +33,8 @@ Sem chaves, o app abre o **wizard** (`/setup/wizard`) que testa cada chave e ger
 ### Banco
 
 Supabase → **SQL Editor** → cole todo o `supabase/schema.sql` → **Run**. Cria as 4 tabelas (`concorrentes`, `snapshots`, `conteudos`, `analises`) com RLS.
+
+No painel Supabase, crie seu usuário em **Authentication → Users → Add user**. O app só autoriza o e-mail definido em `RADAR_ALLOWED_EMAIL`; não compartilhe a chave `SUPABASE_SERVICE_ROLE_KEY`.
 
 ### Onde os dados vivem
 
@@ -47,8 +51,10 @@ Tudo fica no **Supabase** (nuvem), não na sua máquina: fechar o `npm run dev` 
 1. **Suba o código pro GitHub** (o `.gitignore` já protege `.env.local`).
 2. Vercel → **Add New Project** → importe o repositório. Framework: Next.js (autodetecta).
 3. **Antes de fazer deploy**, vá em **Settings → Environment Variables** e adicione, uma a uma, para o ambiente **Production** (e Preview se quiser):
-   - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
+  - `RADAR_ALLOWED_EMAIL`
    - `ANYAPI_KEY`
    - `ANTHROPIC_API_KEY` *(opcional)*
    - `CRON_SECRET` *(para a coleta automática)*
